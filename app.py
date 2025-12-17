@@ -161,33 +161,38 @@ elif onglet == "Supprimer une vente":
             st.write("Sélectionnez une vente pour la supprimer ci-dessus.")
 
 #---------------Importer Produits----------------------#
-elif onglet == 'Import Produits':
+elif onglet == "Import Produits":
     st.subheader("Importer des produits depuis Excel")
 
     fichier = st.file_uploader(
-        "Choisir le fichier Excel des produits (.xlsx)",
-        type = ["xlsx"]
+        "Choisir le fichier Excel (.xlsx)",
+        type=["xlsx"]
     )
 
     if fichier:
         df = pd.read_excel(fichier)
 
-        st.write("Aperçu du fichier")
+        # NORMALISATION
+        df.columns = df.columns.str.strip().str.lower()
+
+        st.write("Aperçu du fichier :")
         st.dataframe(df)
 
         colonnes_requises = [
-            "reference", "nom" , "categorie"
-            "prix_unitaire","quantite"
+            "reference", "nom", "categorie",
+            "prix_unitaire", "quantite"
         ]
 
         if not all(col in df.columns for col in colonnes_requises):
-            st.error("Le fichier Excel ne correspond pas au format attendu.")
-        else :
+            st.error(f"❌ Colonnes attendues : {colonnes_requises}")
+            st.warning(f"Colonnes trouvées : {list(df.columns)}")
+        else:
             if st.button("Importer dans la base"):
                 try:
-                    data = df.to_dict(orient='records')
+                    data = df[colonnes_requises].to_dict(orient="records")
                     supabase.table("produits").insert(data).execute()
-                    st.success("Produits importés avec succès")
+                    st.success(f"✅ {len(data)} produits importés avec succès")
                     st.experimental_rerun()
-                except Exception as e :
+
+                except Exception as e:
                     st.error(f"Erreur lors de l'import : {e}")
