@@ -13,7 +13,7 @@ st.title("📦 Application de gestion de stock")
 st.write("Interface simple pour gérer les produits et enregistrer les ventes")
 
 #------------Onglets---------
-onglet = st.sidebar.radio("Navigation", ["Liste des produits", "Ajouter un produit","Enregistrer une vente","Historique","Supprimer une vente"])
+onglet = st.sidebar.radio("Navigation", ["Liste des produits", "Ajouter un produit","Enregistrer une vente","Historique","Supprimer une vente","Import Produits"])
 
 #--------Liste des produits----
 if onglet == "Liste des produits":
@@ -159,3 +159,35 @@ elif onglet == "Supprimer une vente":
             st.info("Toutes les ventes ont été supprimées.")
         else:
             st.write("Sélectionnez une vente pour la supprimer ci-dessus.")
+
+#---------------Importer Produits----------------------#
+elif onglet == 'Import Produits':
+    st.subheader("Importer des produits depuis Excel")
+
+    fichier = st.file_uploader(
+        "Choisir le fichier Excel des produits (.xlsx)",
+        type = ["xlsx"]
+    )
+
+    if fichier:
+        df = pd.read_excel(fichier)
+
+        st.write("Aperçu du fichier")
+        st.dataframe(df)
+
+        colonnes_requises = [
+            "reference", "nom" , "categorie"
+            "prix_unitaire","quantite"
+        ]
+
+        if not all(col in df.columns for col in colonnes_requises):
+            st.error("Le fichier Excel ne correspond pas au format attendu.")
+        else :
+            if st.button("Importer dans la base"):
+                try:
+                    data = df.to_dict(orient='records')
+                    supabase.table("produits").insert(data).execute()
+                    st.success("Produits importés avec succès")
+                    st.experimental_rerun()
+                except Exception as e :
+                    st.error(f"Erreur lors de l'import : {e}")
