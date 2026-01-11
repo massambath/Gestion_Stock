@@ -1,6 +1,6 @@
 # 🧮 Application de gestion de stock
 
-Une mini-application Python pour gérer le stock d’une boutique et générer des factures simples.
+Une mini-application Python + sqlite pour gérer le stock d’une boutique et générer des factures simples.
 
 ## 📦 Fonctionnalités
 - Ajouter et afficher les produits
