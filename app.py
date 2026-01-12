@@ -7,15 +7,6 @@ from config import supabase  # ton client Supabase
 from postgrest.exceptions import APIError
 from models.vente import supprimer_vente
 
-import os
-import streamlit as st
-
-st.write("URL OK:", bool(os.getenv("SUPABASE_URL")))
-st.write("KEY OK:", bool(os.getenv("SUPABASE_KEY")))
-
-
-
-
 
 
 st.set_page_config(page_title="Gestion de Stock", page_icon="📦")
