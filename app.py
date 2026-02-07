@@ -10,6 +10,8 @@ from models.vente import supprimer_vente
 
 
 st.set_page_config(page_title="Gestion de Stock", page_icon="📦")
+if "panier" not in st.session_state:
+    st.session_state.panier = []
 
 st.title("📦 Application de gestion de stock")
 st.write("Interface simple pour gérer les produits et enregistrer les ventes")
@@ -95,30 +97,48 @@ elif onglet == "Enregistrer une vente":
     )
 
     nom_client = st.text_input("Nom du client")
+    if st.button("Ajouter au panier"):
 
-    if st.button("Valider la vente"):
+        st.session_state.panier.append({
+        "reference": produit["reference"],
+        "nom": produit["nom"],
+        "prix": prix_vendu_carton,
+        "quantite": quantite_vendue,
+        "total": prix_vendu_carton * quantite_vendue
+    })
 
-        result = vendre_produit(
-            produit_selectionne,
-            quantite_vendue,
-            prix_vendu_carton,
-            nom_client,
-            return_msg=True
-        )
+        st.success("Produit ajouté à la facture ✅")
 
-        if isinstance(result, dict):
-            st.success(result["message"])
+    if st.session_state.panier:
 
-            if "facture_path" in result:
-                with open(result["facture_path"], "rb") as f:
-                    st.download_button(
-                        label="Télécharger la facture",
-                        data=f,
-                        file_name=os.path.basename(result["facture_path"]),
-                        mime="application/pdf"
-                    )
-        else:
-            st.error(result)
+        st.subheader("🧾 Facture en cours")
+
+        df_panier = pd.DataFrame(st.session_state.panier)
+        st.dataframe(df_panier, width='stretch')
+
+        total_facture = df_panier["total"].sum()
+
+        st.write(f"### 💰 Total facture : {int(total_facture):,} FCFA")
+
+
+    if st.session_state.panier:
+
+        if st.button("✅ Valider la facture"):
+
+            for item in st.session_state.panier:
+
+                vendre_produit(
+                    item["reference"],
+                    item["quantite"],
+                    item["prix"],
+                    nom_client
+                )
+
+            st.success("Facture enregistrée avec succès 🎉")
+
+            # vider le panier
+            st.session_state.panier = []
+
 
 #-----Historique des ventes-------------
 elif onglet == "Historique":
