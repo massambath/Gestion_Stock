@@ -155,7 +155,14 @@ elif onglet == "Enregistrer une vente":
 
 
             st.success("Facture enregistrée avec succès 🎉")
-            st.write(f"📄 {facture_path}")
+            with open(facture_path, "rb") as f:
+                st.download_button(
+                label="📄 Télécharger la facture",
+                data=f,
+                file_name=os.path.basename(facture_path),
+                mime="application/pdf"
+            )
+
 
             # vider le panier
             st.session_state.panier = []
