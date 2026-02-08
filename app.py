@@ -189,8 +189,8 @@ elif onglet == "Historique":
     df['date_vente_dt'] = pd.to_datetime(df['date_vente'])
     df['date_vente'] = df['date_vente_dt'].dt.strftime("%d/%m/%Y %H:%M")
 
-    # 🔹 Garder uniquement les ventes validées (avec PDF)
-    df_valides = df[df['facture_path'] != ""]
+    # 🔹 Garder uniquement les ventes validées (facture_path non vide)
+    df_valides = df[df['facture_path'].notna() & (df['facture_path'].str.strip() != "")]
 
     if df_valides.empty:
         st.info("Aucune facture validée pour l'instant.")
@@ -209,19 +209,14 @@ elif onglet == "Historique":
         with st.expander(f"🧾 Client : {client} | 💰 {int(total_facture):,} FCFA | 📅 {date}"):
 
             # 🔹 Tableau des produits pour cette facture
-            display_df = groupe[[
-                "reference",
-                "quantite_vendue",
-                "prix_vendu_carton",
-                "total"
-            ]].copy()
+            display_df = groupe[[ "reference", "quantite_vendue", "prix_vendu_carton", "total" ]].copy()
 
             display_df["prix_vendu_carton"] = display_df["prix_vendu_carton"].apply(lambda x: f"{int(x):,} FCFA")
             display_df["total"] = display_df["total"].apply(lambda x: f"{int(x):,} FCFA")
 
             st.dataframe(display_df, width='stretch')
 
-            # 🔹 Bouton téléchargement PDF (exactement comme dans Enregistrer une vente)
+            # 🔹 Bouton téléchargement PDF
             if os.path.exists(facture_path):
                 with open(facture_path, "rb") as f:
                     st.download_button(
@@ -233,8 +228,6 @@ elif onglet == "Historique":
                     )
             else:
                 st.warning("Facture introuvable sur le serveur.")
-
-
 
 
 #------Supprimer Ventes----------------------#
