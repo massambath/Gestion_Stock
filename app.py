@@ -171,50 +171,61 @@ elif onglet == "Enregistrer une vente":
 #-----Historique des ventes-------------
 elif onglet == "Historique":
     st.subheader("Historique des ventes")
-    
+
     ventes = supabase.table("ventes").select("*").order("date_vente", desc=True).execute().data
     df = pd.DataFrame(ventes)
 
     if df.empty:
         st.info("Aucune vente enregistrée.")
-    else:
-        # Nettoyage et formatage
-        df['reference'] = df['reference'].fillna('N/A')
-        df['nom_client'] = df['nom_client'].fillna('N/A')
-        df['prix_vendu_carton'] = df['prix_vendu_carton'].apply(lambda x: f"{int(x):,} FCFA" if x else "0 FCFA")
-        df['total'] = df['total'].apply(lambda x: f"{int(x):,} FCFA" if x else "0 FCFA")
-        df['date_vente'] = pd.to_datetime(df['date_vente']).dt.strftime("%d/%m/%Y %H:%M")
+        st.stop()
 
-        # Affichage ligne par ligne avec colonnes pour “tableau”
-        st.markdown("### Tableau des ventes")
-        header_cols = st.columns([1,1,1,1,1,1,1,1])
-        headers = ["ID", "Réf", "Client", "Qté", "Prix", "Total", "Date", "Facture", "Supprimer"]
-        for col, h in zip(header_cols, headers):
-            col.markdown(f"**{h}**")
+    # Nettoyage
+    df['reference'] = df['reference'].fillna('N/A')
+    df['nom_client'] = df['nom_client'].fillna('N/A')
+    df['date_vente'] = pd.to_datetime(df['date_vente']).dt.strftime("%d/%m/%Y %H:%M")
 
-        for index, row in df.iterrows():
-            cols = st.columns([0.5,1,1,1,1,1,1,1,1])  # ID plus petit
-            cols[0].write(row['id'])  # Affichage ID pour référence
-            cols[1].write(row['reference'])
-            cols[2].write(row['nom_client'])
-            cols[3].write(row['quantite_vendue'])
-            cols[4].write(row['prix_vendu_carton'])
-            cols[5].write(row['total'])
-            cols[6].write(row['date_vente'])
-            
-            # Bouton facture
-            facture_path = row.get('facture_path')
+    # ⚡ VERY IMPORTANT -> ne formatte PAS le total en string avant le groupby
+    df['total'] = df['total'].astype(float)
+
+    # 🔥 GROUPER PAR FACTURE
+    factures = df.groupby("facture_path", dropna=False)
+
+    st.markdown("### 🧾 Factures")
+
+    for facture_path, groupe in factures:
+
+        client = groupe["nom_client"].iloc[0]
+        date = groupe["date_vente"].iloc[0]
+        total_facture = groupe["total"].sum()
+
+        with st.expander(f"🧾 Client : {client} | 💰 {int(total_facture):,} FCFA | 📅 {date}"):
+
+            display_df = groupe[[
+                "reference",
+                "quantite_vendue",
+                "prix_vendu_carton",
+                "total"
+            ]].copy()
+
+            # formatage pour affichage seulement
+            display_df["prix_vendu_carton"] = display_df["prix_vendu_carton"].apply(lambda x: f"{int(x):,} FCFA")
+            display_df["total"] = display_df["total"].apply(lambda x: f"{int(x):,} FCFA")
+
+            st.dataframe(display_df, width='stretch')
+
+            # bouton facture UNIQUE
             if facture_path and os.path.exists(facture_path):
-                with open(facture_path, 'rb') as f:
-                    cols[7].download_button(
-                        label="Télécharger",
-                        data=f,
+                with open(facture_path, "rb") as f:
+                    st.download_button(
+                        "📄 Télécharger la facture",
+                        f,
                         file_name=os.path.basename(facture_path),
                         mime="application/pdf",
-                        key=f"download_{index}"
+                        key=facture_path
                     )
             else:
-                cols[7].write("N/A")
+                st.warning("Facture introuvable.")
+
 
 #------Supprimer Ventes----------------------#
 elif onglet == "Supprimer une vente":
