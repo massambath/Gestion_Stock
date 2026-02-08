@@ -179,27 +179,26 @@ elif onglet == "Historique":
         st.info("Aucune vente enregistrée.")
         st.stop()
 
-    # Nettoyage
+    # 🔹 Nettoyage et conversion
     df['reference'] = df['reference'].fillna('N/A')
     df['nom_client'] = df['nom_client'].fillna('N/A')
     df['date_vente'] = pd.to_datetime(df['date_vente']).dt.strftime("%d/%m/%Y %H:%M")
-
-    # ⚡ VERY IMPORTANT -> ne formatte PAS le total en string avant le groupby
     df['total'] = df['total'].astype(float)
 
-    # 🔥 GROUPER PAR FACTURE
+    # 🔹 IMPORTANT : remplacer NaN par "" pour facture_path et forcer string
+    df['facture_path'] = df['facture_path'].fillna("").astype(str)
+
+    # 🔹 Grouper par facture_path
     factures = df.groupby("facture_path", dropna=False)
 
     st.markdown("### 🧾 Factures")
 
     for facture_path, groupe in factures:
-
         client = groupe["nom_client"].iloc[0]
         date = groupe["date_vente"].iloc[0]
         total_facture = groupe["total"].sum()
 
         with st.expander(f"🧾 Client : {client} | 💰 {int(total_facture):,} FCFA | 📅 {date}"):
-
             display_df = groupe[[
                 "reference",
                 "quantite_vendue",
@@ -207,26 +206,27 @@ elif onglet == "Historique":
                 "total"
             ]].copy()
 
-            # formatage pour affichage seulement
+            # 🔹 Formatage pour affichage seulement
             display_df["prix_vendu_carton"] = display_df["prix_vendu_carton"].apply(lambda x: f"{int(x):,} FCFA")
             display_df["total"] = display_df["total"].apply(lambda x: f"{int(x):,} FCFA")
 
             st.dataframe(display_df, width='stretch')
-            try:
-                if facture_path and os.path.exists(facture_path):
+
+            # 🔹 Bouton téléchargement facture
+            if facture_path:  # string non vide
+                if os.path.exists(facture_path):
                     with open(facture_path, "rb") as f:
                         st.download_button(
                             "📄 Télécharger la facture",
                             f,
                             file_name=os.path.basename(facture_path),
                             mime="application/pdf",
-                            key=str(facture_path)
+                            key=facture_path
                         )
                 else:
-                    st.warning("Facture introuvable.")
-            except Exception as e:
-                st.warning(f"Erreur accès facture : {e}")
-
+                    st.warning("Facture introuvable sur le serveur.")
+            else:
+                st.warning("Facture non générée.")
 
 #------Supprimer Ventes----------------------#
 elif onglet == "Supprimer une vente":
