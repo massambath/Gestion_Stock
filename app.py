@@ -1,11 +1,14 @@
 import streamlit as st
 import pandas as pd
 import os
+
 from models.produit import afficher_produits, ajouter_produit  # Pour compatibilité, mais tu peux migrer entièrement vers supabase
 from models.vente import vendre_produit
 from config import supabase  # ton client Supabase
 from postgrest.exceptions import APIError
 from models.vente import supprimer_vente
+from utils.facture import generer_facture
+
 
 
 
@@ -104,7 +107,8 @@ elif onglet == "Enregistrer une vente":
         "nom": produit["nom"],
         "prix": prix_vendu_carton,
         "quantite": quantite_vendue,
-        "total": prix_vendu_carton * quantite_vendue
+        "total": prix_vendu_carton * quantite_vendue,
+        "client": nom_client  
     })
 
         st.success("Produit ajouté à la facture ✅")
@@ -124,6 +128,8 @@ elif onglet == "Enregistrer une vente":
     if st.session_state.panier:
 
         if st.button("✅ Valider la facture"):
+           
+            lignes_facture = []
 
             for item in st.session_state.panier:
 
@@ -131,10 +137,25 @@ elif onglet == "Enregistrer une vente":
                     item["reference"],
                     item["quantite"],
                     item["prix"],
-                    nom_client
+                    item["client"]   # <- plus sûr
+
                 )
+                
+                lignes_facture.append({
+                        "reference": item["reference"],
+                        "quantite": item["quantite"],
+                        "prix": item["prix"],
+                        "total": item["total"]
+                    })
+            facture_path = generer_facture(
+            lignes_facture,
+            nom_client=st.session_state.panier[0]["client"],
+            total=total_facture
+)
+
 
             st.success("Facture enregistrée avec succès 🎉")
+            st.write(f"📄 {facture_path}")
 
             # vider le panier
             st.session_state.panier = []

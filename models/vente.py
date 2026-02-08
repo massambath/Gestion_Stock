@@ -22,7 +22,6 @@ def vendre_produit(reference,quantite_vendue,prix_vendu_carton,nom_client, retur
     total = quantite_vendue * prix_vendu_carton
 
      # Génération facture
-    facture_path = generer_facture(reference, quantite_vendue, prix_vendu_carton,nom_client, total)
 
     # Historique de vente
     supabase.table("ventes").insert({
@@ -32,7 +31,6 @@ def vendre_produit(reference,quantite_vendue,prix_vendu_carton,nom_client, retur
         "prix_vendu_carton": prix_vendu_carton,
         "nom_client": nom_client,
         "total": total,
-        "facture_path": facture_path
     }).execute()
 
     return {"message": f"✔ Vente enregistrée ({quantite_vendue} x {reference})", "facture_path": facture_path}
