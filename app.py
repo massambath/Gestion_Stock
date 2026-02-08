@@ -179,26 +179,28 @@ elif onglet == "Historique":
         st.info("Aucune vente enregistrée.")
         st.stop()
 
-    # 🔹 Nettoyage et conversion
+    # Nettoyage
     df['reference'] = df['reference'].fillna('N/A')
     df['nom_client'] = df['nom_client'].fillna('N/A')
     df['date_vente'] = pd.to_datetime(df['date_vente']).dt.strftime("%d/%m/%Y %H:%M")
     df['total'] = df['total'].astype(float)
-
-    # 🔹 IMPORTANT : remplacer NaN par "" pour facture_path et forcer string
     df['facture_path'] = df['facture_path'].fillna("").astype(str)
 
-    # 🔹 Grouper par facture_path
-    factures = df.groupby("facture_path", dropna=False)
+    # 🔹 Création clé de regroupement unique
+    df['facture_key'] = df['nom_client'] + "_" + df['date_vente'] + "_" + df['facture_path']
+
+    factures = df.groupby('facture_key', dropna=False)
 
     st.markdown("### 🧾 Factures")
 
-    for facture_path, groupe in factures:
+    for _, groupe in factures:
         client = groupe["nom_client"].iloc[0]
         date = groupe["date_vente"].iloc[0]
         total_facture = groupe["total"].sum()
+        facture_path = groupe["facture_path"].iloc[0]
 
         with st.expander(f"🧾 Client : {client} | 💰 {int(total_facture):,} FCFA | 📅 {date}"):
+
             display_df = groupe[[
                 "reference",
                 "quantite_vendue",
@@ -206,14 +208,14 @@ elif onglet == "Historique":
                 "total"
             ]].copy()
 
-            # 🔹 Formatage pour affichage seulement
+            # formatage pour affichage seulement
             display_df["prix_vendu_carton"] = display_df["prix_vendu_carton"].apply(lambda x: f"{int(x):,} FCFA")
             display_df["total"] = display_df["total"].apply(lambda x: f"{int(x):,} FCFA")
 
             st.dataframe(display_df, width='stretch')
 
-            # 🔹 Bouton téléchargement facture
-            if facture_path:  # string non vide
+            # bouton téléchargement facture
+            if facture_path:
                 if os.path.exists(facture_path):
                     with open(facture_path, "rb") as f:
                         st.download_button(
@@ -227,6 +229,7 @@ elif onglet == "Historique":
                     st.warning("Facture introuvable sur le serveur.")
             else:
                 st.warning("Facture non générée.")
+
 
 #------Supprimer Ventes----------------------#
 elif onglet == "Supprimer une vente":
