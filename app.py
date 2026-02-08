@@ -172,7 +172,7 @@ elif onglet == "Enregistrer une vente":
 elif onglet == "Historique":
     st.subheader("Historique des ventes")
 
-    # Récupération des ventes
+    # 🔹 Récupérer toutes les ventes
     ventes = supabase.table("ventes").select("*").order("date_vente", desc=True).execute().data
     df = pd.DataFrame(ventes)
 
@@ -180,7 +180,7 @@ elif onglet == "Historique":
         st.info("Aucune vente enregistrée.")
         st.stop()
 
-    # 🔹 Nettoyage
+    # Nettoyage et conversions
     df['reference'] = df['reference'].fillna('N/A')
     df['nom_client'] = df['nom_client'].fillna('N/A')
     df['total'] = df['total'].astype(float)
@@ -189,28 +189,26 @@ elif onglet == "Historique":
     df['date_vente_dt'] = pd.to_datetime(df['date_vente'])
     df['date_vente'] = df['date_vente_dt'].dt.strftime("%d/%m/%Y %H:%M")
 
-    # 🔹 Clé unique pour grouper correctement par facture
-    df['facture_key'] = df['nom_client'] + "_" + df['date_vente'] + "_" + df['facture_path']
+    # 🔹 Garder uniquement les ventes validées (avec PDF)
+    df_valides = df[df['facture_path'] != ""]
 
-    # 🔹 Trier par date pour afficher la dernière facture en haut
-    df = df.sort_values('date_vente_dt', ascending=False)
+    if df_valides.empty:
+        st.info("Aucune facture validée pour l'instant.")
+        st.stop()
 
-    factures = df.groupby('facture_key', sort=False)
+    # 🔹 Grouper par facture_path
+    factures = df_valides.groupby("facture_path", sort=False)
 
-    st.markdown("### 🧾 Factures")
+    st.markdown("### 🧾 Factures validées")
 
-    for _, groupe in factures:
+    for facture_path, groupe in factures:
         client = groupe["nom_client"].iloc[0]
         date = groupe["date_vente"].iloc[0]
         total_facture = groupe["total"].sum()
 
-        # 🔹 Chercher le premier PDF valide du groupe
-        paths = [p for p in groupe["facture_path"] if p]
-        facture_path = paths[0] if paths else ""
-
         with st.expander(f"🧾 Client : {client} | 💰 {int(total_facture):,} FCFA | 📅 {date}"):
 
-            # 🔹 Dataframe des produits de cette facture
+            # 🔹 Tableau des produits pour cette facture
             display_df = groupe[[
                 "reference",
                 "quantite_vendue",
@@ -218,27 +216,24 @@ elif onglet == "Historique":
                 "total"
             ]].copy()
 
-            # Formatage pour affichage
             display_df["prix_vendu_carton"] = display_df["prix_vendu_carton"].apply(lambda x: f"{int(x):,} FCFA")
             display_df["total"] = display_df["total"].apply(lambda x: f"{int(x):,} FCFA")
 
             st.dataframe(display_df, width='stretch')
 
-            # 🔹 Bouton téléchargement facture
-            if facture_path:
-                if os.path.exists(facture_path):
-                    with open(facture_path, "rb") as f:
-                        st.download_button(
-                            "📄 Télécharger la facture",
-                            f,
-                            file_name=os.path.basename(facture_path),
-                            mime="application/pdf",
-                            key=facture_path
-                        )
-                else:
-                    st.warning("Facture introuvable sur le serveur.")
+            # 🔹 Bouton téléchargement PDF (exactement comme dans Enregistrer une vente)
+            if os.path.exists(facture_path):
+                with open(facture_path, "rb") as f:
+                    st.download_button(
+                        "📄 Télécharger la facture",
+                        f,
+                        file_name=os.path.basename(facture_path),
+                        mime="application/pdf",
+                        key=facture_path
+                    )
             else:
-                st.warning("Facture non générée.")
+                st.warning("Facture introuvable sur le serveur.")
+
 
 
 
