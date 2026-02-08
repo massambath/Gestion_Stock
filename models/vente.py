@@ -1,4 +1,3 @@
-from utils.facture import generer_facture
 from config import supabase
 
 def vendre_produit(reference,quantite_vendue,prix_vendu_carton,nom_client, return_msg=False):
@@ -33,7 +32,7 @@ def vendre_produit(reference,quantite_vendue,prix_vendu_carton,nom_client, retur
         "total": total,
     }).execute()
 
-    return {"message": f"✔ Vente enregistrée ({quantite_vendue} x {reference})", "facture_path": facture_path}
+    return f"✔ Vente enregistrée ({quantite_vendue} x {reference})"
 
 
 def supprimer_vente(vente_id):
