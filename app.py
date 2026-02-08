@@ -212,19 +212,20 @@ elif onglet == "Historique":
             display_df["total"] = display_df["total"].apply(lambda x: f"{int(x):,} FCFA")
 
             st.dataframe(display_df, width='stretch')
-
-            # bouton facture UNIQUE
-            if facture_path and os.path.exists(facture_path):
-                with open(facture_path, "rb") as f:
-                    st.download_button(
-                        "📄 Télécharger la facture",
-                        f,
-                        file_name=os.path.basename(facture_path),
-                        mime="application/pdf",
-                        key=facture_path
-                    )
-            else:
-                st.warning("Facture introuvable.")
+            try:
+                if facture_path and os.path.exists(facture_path):
+                    with open(facture_path, "rb") as f:
+                        st.download_button(
+                            "📄 Télécharger la facture",
+                            f,
+                            file_name=os.path.basename(facture_path),
+                            mime="application/pdf",
+                            key=str(facture_path)
+                        )
+                else:
+                    st.warning("Facture introuvable.")
+            except Exception as e:
+                st.warning(f"Erreur accès facture : {e}")
 
 
 #------Supprimer Ventes----------------------#
