@@ -1,7 +1,7 @@
 from config import supabase
 
 
-def vendre_produit(reference, quantite_vendue, prix_vendu_carton, nom_client, facture_path):
+def vendre_produit(reference, quantite_vendue, prix_vendu_carton, nom_client, facture_path,return_msg=False):
 
     result = supabase.table("produits").select("*").eq("reference", reference).execute()
     produits = result.data
