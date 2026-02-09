@@ -187,11 +187,12 @@ elif onglet == "Historique":
     df['prix_vendu_carton'] = df['prix_vendu_carton'].astype(float)
     df['date_vente_dt'] = pd.to_datetime(df['date_vente'])
     df['date_vente'] = df['date_vente_dt'].dt.strftime("%d/%m/%Y %H:%M")
+    df['facture_path'] = df.get('facture_path', "").fillna("").astype(str)
 
-    # 🔹 Grouper par client + date (chaque vente devient sa "facture")
+    # 🔹 Grouper par client ET date (simule une facture)
     factures = df.groupby(['nom_client', 'date_vente_dt'], sort=False)
 
-    st.markdown("### 🧾 Historique des ventes")
+    st.markdown("### 🧾 Historique des ventes par client")
 
     for (client, date_dt), groupe in factures:
         total_facture = groupe["total"].sum()
@@ -199,14 +200,15 @@ elif onglet == "Historique":
 
         with st.expander(f"🧾 Client : {client} | 💰 {int(total_facture):,} FCFA | 📅 {date_str}"):
 
+            # 🔹 Tableau des produits vendus pour ce client/facture
             display_df = groupe[["reference", "quantite_vendue", "prix_vendu_carton", "total"]].copy()
             display_df["prix_vendu_carton"] = display_df["prix_vendu_carton"].apply(lambda x: f"{int(x):,} FCFA")
             display_df["total"] = display_df["total"].apply(lambda x: f"{int(x):,} FCFA")
 
             st.dataframe(display_df, width='stretch')
 
-            # ⚠️ Si facture_path existe, afficher bouton, sinon rien
-            facture_path = groupe.get('facture_path', "").iloc[0]
+            # 🔹 Bouton téléchargement PDF si présent
+            facture_path = groupe['facture_path'].iloc[0]
             if facture_path and os.path.exists(facture_path):
                 with open(facture_path, "rb") as f:
                     st.download_button(
@@ -218,6 +220,7 @@ elif onglet == "Historique":
                     )
             else:
                 st.info("PDF non disponible pour cette vente.")
+
 
 #------Supprimer Ventes----------------------#
 elif onglet == "Supprimer une vente":
