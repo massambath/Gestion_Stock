@@ -187,39 +187,22 @@ elif onglet == "Historique":
     df['prix_vendu_carton'] = df['prix_vendu_carton'].astype(float)
     df['date_vente_dt'] = pd.to_datetime(df['date_vente'])
     df['date_vente'] = df['date_vente_dt'].dt.strftime("%d/%m/%Y %H:%M")
-    df['facture_path'] = df.get('facture_path', "").fillna("").astype(str)
 
-    # 🔹 Grouper par client ET date (simule une facture)
-    factures = df.groupby(['nom_client', 'date_vente_dt'], sort=False)
+    # 🔹 Grouper par client pour avoir un résumé par client
+    clients = df.groupby('nom_client', sort=False)
 
     st.markdown("### 🧾 Historique des ventes par client")
 
-    for (client, date_dt), groupe in factures:
-        total_facture = groupe["total"].sum()
-        date_str = groupe["date_vente"].iloc[0]
+    for client, groupe in clients:
+        total_client = groupe['total'].sum()
+        with st.expander(f"🧾 Client : {client} | 💰 {int(total_client):,} FCFA | {len(groupe)} vente(s)"):
 
-        with st.expander(f"🧾 Client : {client} | 💰 {int(total_facture):,} FCFA | 📅 {date_str}"):
-
-            # 🔹 Tableau des produits vendus pour ce client/facture
-            display_df = groupe[["reference", "quantite_vendue", "prix_vendu_carton", "total"]].copy()
-            display_df["prix_vendu_carton"] = display_df["prix_vendu_carton"].apply(lambda x: f"{int(x):,} FCFA")
-            display_df["total"] = display_df["total"].apply(lambda x: f"{int(x):,} FCFA")
+            display_df = groupe[['reference', 'quantite_vendue', 'prix_vendu_carton', 'total', 'date_vente']].copy()
+            display_df['prix_vendu_carton'] = display_df['prix_vendu_carton'].apply(lambda x: f"{int(x):,} FCFA")
+            display_df['total'] = display_df['total'].apply(lambda x: f"{int(x):,} FCFA")
 
             st.dataframe(display_df, width='stretch')
 
-            # 🔹 Bouton téléchargement PDF si présent
-            facture_path = groupe['facture_path'].iloc[0]
-            if facture_path and os.path.exists(facture_path):
-                with open(facture_path, "rb") as f:
-                    st.download_button(
-                        "📄 Télécharger la facture",
-                        f,
-                        file_name=os.path.basename(facture_path),
-                        mime="application/pdf",
-                        key=f"{client}_{date_str}"
-                    )
-            else:
-                st.info("PDF non disponible pour cette vente.")
 
 
 #------Supprimer Ventes----------------------#
