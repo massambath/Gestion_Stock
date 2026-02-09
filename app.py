@@ -185,51 +185,39 @@ elif onglet == "Historique":
     df['nom_client'] = df['nom_client'].fillna('N/A')
     df['total'] = df['total'].astype(float)
     df['prix_vendu_carton'] = df['prix_vendu_carton'].astype(float)
-    df['facture_path'] = df['facture_path'].fillna("").astype(str)
     df['date_vente_dt'] = pd.to_datetime(df['date_vente'])
     df['date_vente'] = df['date_vente_dt'].dt.strftime("%d/%m/%Y %H:%M")
 
-    # 🔹 Garder uniquement les ventes validées (facture_path non vide)
-    df_valides = df[df['facture_path'].notna() & (df['facture_path'].str.strip() != "")]
+    # 🔹 Grouper par client + date (chaque vente devient sa "facture")
+    factures = df.groupby(['nom_client', 'date_vente_dt'], sort=False)
 
-    if df_valides.empty:
-        st.info("Aucune facture validée pour l'instant.")
-        st.stop()
+    st.markdown("### 🧾 Historique des ventes")
 
-    # 🔹 Grouper par facture_path
-    factures = df_valides.groupby("facture_path", sort=False)
-
-    st.markdown("### 🧾 Factures validées")
-
-    for facture_path, groupe in factures:
-        client = groupe["nom_client"].iloc[0]
-        date = groupe["date_vente"].iloc[0]
+    for (client, date_dt), groupe in factures:
         total_facture = groupe["total"].sum()
+        date_str = groupe["date_vente"].iloc[0]
 
-        with st.expander(f"🧾 Client : {client} | 💰 {int(total_facture):,} FCFA | 📅 {date}"):
+        with st.expander(f"🧾 Client : {client} | 💰 {int(total_facture):,} FCFA | 📅 {date_str}"):
 
-            # 🔹 Tableau des produits pour cette facture
-            display_df = groupe[[ "reference", "quantite_vendue", "prix_vendu_carton", "total" ]].copy()
-
+            display_df = groupe[["reference", "quantite_vendue", "prix_vendu_carton", "total"]].copy()
             display_df["prix_vendu_carton"] = display_df["prix_vendu_carton"].apply(lambda x: f"{int(x):,} FCFA")
             display_df["total"] = display_df["total"].apply(lambda x: f"{int(x):,} FCFA")
 
             st.dataframe(display_df, width='stretch')
 
-            # 🔹 Bouton téléchargement PDF
-            if os.path.exists(facture_path):
+            # ⚠️ Si facture_path existe, afficher bouton, sinon rien
+            facture_path = groupe.get('facture_path', "").iloc[0]
+            if facture_path and os.path.exists(facture_path):
                 with open(facture_path, "rb") as f:
                     st.download_button(
                         "📄 Télécharger la facture",
                         f,
                         file_name=os.path.basename(facture_path),
                         mime="application/pdf",
-                        key=facture_path
+                        key=f"{client}_{date_str}"
                     )
             else:
-                st.warning("Facture introuvable sur le serveur.")
-#test git
-
+                st.info("PDF non disponible pour cette vente.")
 
 #------Supprimer Ventes----------------------#
 elif onglet == "Supprimer une vente":
