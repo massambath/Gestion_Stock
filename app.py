@@ -180,7 +180,7 @@ elif onglet == "Historique":
         st.info("Aucune vente enregistrée.")
         st.stop()
 
-    # Nettoyage et conversions
+    # 🔹 Nettoyage et conversions
     df['reference'] = df['reference'].fillna('N/A')
     df['nom_client'] = df['nom_client'].fillna('N/A')
     df['total'] = df['total'].astype(float)
@@ -188,20 +188,53 @@ elif onglet == "Historique":
     df['date_vente_dt'] = pd.to_datetime(df['date_vente'])
     df['date_vente'] = df['date_vente_dt'].dt.strftime("%d/%m/%Y %H:%M")
 
-    # 🔹 Grouper par client pour avoir un résumé par client
-    clients = df.groupby('nom_client', sort=False)
+    # 🔹 Grouper par client
+    clients = df.groupby("nom_client", sort=False)
 
-    st.markdown("### 🧾 Historique des ventes par client")
+    st.markdown("### 🧾 Historique par client")
 
     for client, groupe in clients:
-        total_client = groupe['total'].sum()
-        with st.expander(f"🧾 Client : {client} | 💰 {int(total_client):,} FCFA | {len(groupe)} vente(s)"):
+        total_client = groupe["total"].sum()
+        nb_ventes = len(groupe)
 
-            display_df = groupe[['reference', 'quantite_vendue', 'prix_vendu_carton', 'total', 'date_vente']].copy()
-            display_df['prix_vendu_carton'] = display_df['prix_vendu_carton'].apply(lambda x: f"{int(x):,} FCFA")
-            display_df['total'] = display_df['total'].apply(lambda x: f"{int(x):,} FCFA")
+        with st.expander(f"👤 Client : {client} | {nb_ventes} ventes | 💰 Total : {int(total_client):,} FCFA"):
+
+            # Tableau des ventes pour ce client
+            display_df = groupe[["reference", "quantite_vendue", "prix_vendu_carton", "total", "date_vente"]].copy()
+            display_df["prix_vendu_carton"] = display_df["prix_vendu_carton"].apply(lambda x: f"{int(x):,} FCFA")
+            display_df["total"] = display_df["total"].apply(lambda x: f"{int(x):,} FCFA")
 
             st.dataframe(display_df, width='stretch')
+
+            # 🔹 Bouton génération PDF à la volée
+            if st.button(f"📄 Générer PDF pour {client}", key=f"pdf_{client}"):
+
+                # Créer les lignes pour la facture
+                lignes_facture = []
+                for _, row in groupe.iterrows():
+                    lignes_facture.append({
+                        "reference": row["reference"],
+                        "quantite": row["quantite_vendue"],
+                        "prix": row["prix_vendu_carton"],
+                        "total": row["total"]
+                    })
+
+                # Générer le PDF
+                facture_path = generer_facture(
+                    lignes_facture,
+                    nom_client=client,
+                    total=total_client
+                )
+
+                st.success(f"PDF généré : {os.path.basename(facture_path)}")
+                with open(facture_path, "rb") as f:
+                    st.download_button(
+                        "📥 Télécharger la facture",
+                        data=f,
+                        file_name=os.path.basename(facture_path),
+                        mime="application/pdf",
+                        key=f"download_{client}"
+                    )
 
 
 
