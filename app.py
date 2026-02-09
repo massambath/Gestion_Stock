@@ -16,7 +16,7 @@ st.set_page_config(page_title="Gestion de Stock", page_icon="📦")
 if "panier" not in st.session_state:
     st.session_state.panier = []
 
-st.title("📦 Application de gestion de stock")
+st.title("BINETOU---Application de gestion de stock---BINETOU")
 st.write("Interface simple pour gérer les produits et enregistrer les ventes")
 
 #------------Onglets---------
