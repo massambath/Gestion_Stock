@@ -1,41 +1,38 @@
 from config import supabase
 
-
-def vendre_produit(reference, quantite_vendue, prix_vendu_carton, nom_client, facture_path,return_msg=False):
-
+def vendre_produit(reference,quantite_vendue,prix_vendu_carton,nom_client, return_msg=False):
     result = supabase.table("produits").select("*").eq("reference", reference).execute()
-    produits = result.data
+    produits = result.data  # c’est une liste de dicts
 
     if not produits:
-        return "Produit non trouvé"
+        return "Produit non trouvé"  # ou message d'erreur
 
-    produit = produits[0]
+    produit = produits[0]  # prendre le premier élément
 
-    if produit["quantite"] < quantite_vendue:
-        return "Stock insuffisant"
+    
+    if produit["quantite"]< quantite_vendue:
+        return " Stock insuffisant "
 
-    # 🔥 Mise à jour du stock
-    nouvelle_quantite = produit["quantite"] - quantite_vendue
-    supabase.table("produits")\
-        .update({"quantite": nouvelle_quantite})\
-        .eq("id", produit["id"])\
-        .execute()
+    # Mise à jour du stock
+    nouvelle_quantite = produit["quantite"]- quantite_vendue
+    supabase.table("produits").update({"quantite": nouvelle_quantite}).eq("id",produit["id"]).execute()
 
+    # Calcul
     total = quantite_vendue * prix_vendu_carton
 
-    # 🔥 INSERT AVEC FACTURE
+     # Génération facture
+
+    # Historique de vente
     supabase.table("ventes").insert({
         "produit_id": produit["id"],
-        "reference": produit["reference"],
+        "reference": produit["reference"],     
         "quantite_vendue": quantite_vendue,
         "prix_vendu_carton": prix_vendu_carton,
         "nom_client": nom_client,
         "total": total,
-        "facture_path": facture_path   # <<<<<<<< CRUCIAL
     }).execute()
 
     return f"✔ Vente enregistrée ({quantite_vendue} x {reference})"
-
 
 
 def supprimer_vente(vente_id):
