@@ -6,9 +6,9 @@ Une mini-application Python + sqlite pour gérer le stock d’une boutique et g�
 - Ajouter et afficher les produits
 - Enregistrer une vente
 - Met à jour le stock automatiquement
-- Génère une facture après chaque vente
+- Génère une facture  pdf après chaque vente
 - Base de données SQLite intégrée
-- Possibilité d'ajouter données via csv
+- Possibilité d'ajouter données via csv/excel
 
 ## 🚀 Lancer le projet
 ```bashgit 
